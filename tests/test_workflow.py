@@ -42,7 +42,7 @@ def test_task_can_be_rejected():
     rejected = approve_task(task.task_id, ApprovalRequest(approved=False))
     assert rejected.status == "rejected"
 
-def test_task_can_be_cancelled_and_retried():
+def test_task_actions_emit_retry_event():
     task = create_task(TaskRequest(description="Prepare a cancellable task"))
     cancelled = cancel_task(task.task_id)
     assert cancelled.status == "cancelled"
