@@ -2,6 +2,10 @@
 
 An MVP orchestration service built with Python and LangGraph, designed for durable task execution, agent delegation, tool boundaries, and human approval.
 
+## Portfolio summary
+
+This project demonstrates a multi-agent control plane rather than a single chatbot. It decomposes work, assigns capability-based agents, pauses for human approval, executes permissioned tools, persists an event timeline, retries transient failures, and reviews results before completion.
+
 ## Run locally
 
 ```powershell
@@ -13,6 +17,8 @@ uvicorn app.main:app --reload
 
 Open `http://localhost:8000/docs`.
 
+For the local dashboard, open `http://localhost:8001`. For the full Docker stack, open `http://localhost:8002`.
+
 The workflow is intentionally small and inspectable. PostgreSQL and Redis are included in `docker-compose.yml` for the production-shaped local setup; Redis is reserved for the worker queue in the next iteration.
 
 Tasks are persisted through SQLAlchemy. SQLite is the default for a zero-setup portfolio demo; set `DATABASE_URL` to PostgreSQL when running the infrastructure locally.
@@ -22,6 +28,16 @@ Tasks are persisted through SQLAlchemy. SQLite is the default for a zero-setup p
 `intake -> plan -> approval -> execute -> complete`
 
 Tasks requiring approval pause before execution and can be resumed through the approval endpoint.
+
+## Demo
+
+Run the deterministic end-to-end demo:
+
+```powershell
+python scripts/demo.py
+```
+
+Architecture details are available in [docs/architecture.md](docs/architecture.md).
 
 ## Background worker mode
 
