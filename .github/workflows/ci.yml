@@ -45,6 +45,29 @@ jobs:
           curl --fail http://localhost:8002/model-status
           curl --fail http://localhost:8002/metrics
 
+      - name: Verify end-to-end task workflow
+        run: |
+          task=$(curl --fail -s -X POST http://localhost:8002/tasks \
+            -H 'Content-Type: application/json' \
+            -d '{"description":"CI integration task"}')
+          task_id=$(echo "$task" | jq -r '.task_id')
+          status=$(echo "$task" | jq -r '.status')
+          test "$status" = "awaiting_approval"
+          curl --fail -s -X POST "http://localhost:8002/tasks/$task_id/approval" \
+            -H 'Content-Type: application/json' \
+            -d '{"approved":true}' > /dev/null
+          for attempt in {1..20}; do
+            result=$(curl --fail -s "http://localhost:8002/tasks/$task_id")
+            status=$(echo "$result" | jq -r '.status')
+            if [ "$status" = "completed" ]; then
+              echo "$result"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Task did not complete: $result"
+          exit 1
+
       - name: Show service status
         if: always()
         run: docker compose ps
