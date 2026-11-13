@@ -1,4 +1,28 @@
 services:
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://orchestration:orchestration@postgres:5432/orchestration
+      REDIS_URL: redis://redis:6379/0
+      QUEUE_MODE: redis
+    ports: ["8002:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  worker:
+    build: .
+    command: ["python", "-m", "app.worker"]
+    environment:
+      DATABASE_URL: postgresql://orchestration:orchestration@postgres:5432/orchestration
+      REDIS_URL: redis://redis:6379/0
+      QUEUE_MODE: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
   postgres:
     image: postgres:16
     environment:
@@ -7,6 +31,11 @@ services:
       POSTGRES_PASSWORD: orchestration
     ports: ["5432:5432"]
     volumes: ["orchestration_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orchestration -d orchestration"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   redis:
     image: redis:7
     ports: ["6379:6379"]

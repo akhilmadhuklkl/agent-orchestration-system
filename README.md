@@ -33,6 +33,8 @@ python -m app.worker
 
 Set `DATABASE_URL=postgresql://orchestration:orchestration@localhost:5432/orchestration` to use PostgreSQL. The application creates its tables on startup; SQLite remains the default for a zero-setup demo.
 
+For the full local stack, run `docker compose up --build`. The API is then available at `http://localhost:8002`, with PostgreSQL, Redis, and a background worker running as separate services.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples
