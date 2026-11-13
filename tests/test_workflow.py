@@ -91,3 +91,7 @@ def test_task_can_be_cancelled_and_retried():
     assert cancelled.status == "cancelled"
     retried = retry_task(task.task_id)
     assert retried.status == "awaiting_approval"
+
+def test_sqlite_repository_is_default():
+    from app.config import settings
+    assert settings.database_url.startswith("sqlite:///")

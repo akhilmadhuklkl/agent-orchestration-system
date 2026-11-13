@@ -6,6 +6,11 @@ from datetime import UTC, datetime
 
 from .config import settings
 
+try:
+    import psycopg
+except ImportError:  # pragma: no cover
+    psycopg = None
+
 
 @dataclass
 class TaskRecord:
@@ -38,7 +43,25 @@ def _path() -> str:
     return settings.database_url.removeprefix("sqlite:///") if settings.database_url.startswith("sqlite:///") else "orchestrator.db"
 
 def connect():
+    if settings.database_url.startswith(("postgresql://", "postgres://")):
+        if psycopg is None:
+            raise RuntimeError("psycopg is required for PostgreSQL DATABASE_URL")
+        return _PostgresConnection(psycopg.connect(settings.database_url))
     return sqlite3.connect(_path())
+
+class _PostgresConnection:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def __enter__(self):
+        self.connection.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        return self.connection.__exit__(*args)
+
+    def execute(self, query, params=()):
+        return self.connection.execute(query.replace("?", "%s").replace("rowid", "created_at"), params)
 
 def init_db() -> None:
     with connect() as db:
@@ -49,7 +72,10 @@ def init_db() -> None:
 def save_task(task: TaskRecord) -> None:
     now = datetime.now(UTC).isoformat()
     with connect() as db:
-        db.execute("INSERT OR REPLACE INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (task.id, task.description, int(task.require_approval), task.status, json.dumps(task.plan), task.result, task.error, now, now))
+        if settings.database_url.startswith(("postgresql://", "postgres://")):
+            db.execute("INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET description=EXCLUDED.description, require_approval=EXCLUDED.require_approval, status=EXCLUDED.status, plan=EXCLUDED.plan, result=EXCLUDED.result, error=EXCLUDED.error, updated_at=EXCLUDED.updated_at", (task.id, task.description, int(task.require_approval), task.status, json.dumps(task.plan), task.result, task.error, now, now))
+        else:
+            db.execute("INSERT OR REPLACE INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (task.id, task.description, int(task.require_approval), task.status, json.dumps(task.plan), task.result, task.error, now, now))
 
 def get_task(task_id: str) -> TaskRecord | None:
     with connect() as db:

@@ -31,6 +31,8 @@ The default `QUEUE_MODE=sync` runs locally without Redis. To use the worker arch
 python -m app.worker
 ```
 
+Set `DATABASE_URL=postgresql://orchestration:orchestration@localhost:5432/orchestration` to use PostgreSQL. The application creates its tables on startup; SQLite remains the default for a zero-setup demo.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples
