@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+from app.database import api_key_user, revoke_api_key, save_api_key
 from app.identity import require_admin
 from app.main import (
     approve_task,
@@ -102,6 +103,13 @@ def test_role_policy_rejects_non_admin(monkeypatch):
         assert error.status_code == 403
     else:
         raise AssertionError("member role was accepted for admin operation")
+
+def test_database_api_key_can_be_revoked():
+    raw_key = "test-key"
+    save_api_key(raw_key, "local-user")
+    assert api_key_user(raw_key) == "local-user"
+    revoke_api_key(raw_key)
+    assert api_key_user(raw_key) is None
 
 def test_task_list_includes_created_tasks():
     task = create_task(TaskRequest(description="List this task"))

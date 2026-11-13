@@ -1,3 +1,4 @@
+import secrets
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
@@ -14,7 +15,9 @@ from .database import (
     get_tasks,
     get_tool_runs,
     init_db,
+    save_api_key,
     save_task,
+    save_user,
 )
 from .database import get_task as load_task
 from .graph import build_graph
@@ -29,6 +32,8 @@ from .models import (
     TaskState,
     ToolExecutionRequest,
     ToolRun,
+    UserCreateRequest,
+    UserCreateResponse,
 )
 from .observability import (
     RequestObservabilityMiddleware,
@@ -63,6 +68,13 @@ def identity():
 @app.get("/admin/access-check", dependencies=[Depends(require_api_key), Depends(require_admin)])
 def admin_access_check():
     return {"authorized": True, "role": settings.user_role, "workspace_id": settings.workspace_id}
+
+@app.post("/admin/users", response_model=UserCreateResponse, dependencies=[Depends(require_api_key), Depends(require_admin)])
+def create_user(request: UserCreateRequest):
+    raw_key = "orchestrator_" + secrets.token_urlsafe(24)
+    save_user(request.user_id, request.workspace_id, request.role)
+    save_api_key(raw_key, request.user_id)
+    return UserCreateResponse(user_id=request.user_id, workspace_id=request.workspace_id, role=request.role, api_key=raw_key)
 
 @app.get("/metrics")
 def metrics_endpoint():

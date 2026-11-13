@@ -35,6 +35,17 @@ class MemoryItem(BaseModel):
     value: Any
     created_at: str
 
+class UserCreateRequest(BaseModel):
+    user_id: str
+    workspace_id: str
+    role: str = "member"
+
+class UserCreateResponse(BaseModel):
+    user_id: str
+    workspace_id: str
+    role: str
+    api_key: str
+
 class TaskEvent(BaseModel):
     event_type: str
     message: str
