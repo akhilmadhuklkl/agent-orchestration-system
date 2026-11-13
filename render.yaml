@@ -1,0 +1,65 @@
+services:
+  - type: web
+    name: agent-orchestrator-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agent-orchestrator-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agent-orchestrator-redis
+          property: connectionString
+      - key: QUEUE_MODE
+        value: redis
+      - key: MODEL_MODE
+        value: deterministic
+      - key: API_KEY
+        generateValue: true
+      - key: WORKSPACE_ID
+        value: portfolio
+      - key: USER_ID
+        value: admin
+      - key: USER_ROLE
+        value: admin
+      - key: CORS_ORIGINS
+        value: https://agent-orchestrator-api.onrender.com
+
+  - type: worker
+    name: agent-orchestrator-worker
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m app.worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agent-orchestrator-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agent-orchestrator-redis
+          property: connectionString
+      - key: QUEUE_MODE
+        value: redis
+      - key: MODEL_MODE
+        value: deterministic
+
+  - type: keyvalue
+    name: agent-orchestrator-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: agent-orchestrator-db
+    plan: free
+    databaseName: orchestration
+    user: orchestration
