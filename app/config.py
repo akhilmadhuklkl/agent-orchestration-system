@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     model_mode: str = "deterministic"
     openai_api_key: str = ""
     model_name: str = "gpt-4.1-mini"
+    ollama_base_url: str = "http://localhost:11434"
     workspace_id: str = "default"
     user_id: str = "local-user"
     user_role: str = "admin"

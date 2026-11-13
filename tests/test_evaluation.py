@@ -11,3 +11,6 @@ def test_routing_evaluation_cases():
 
 def test_deterministic_model_mode_is_available():
     assert settings.model_mode == "deterministic"
+
+def test_ollama_endpoint_has_a_local_default():
+    assert settings.ollama_base_url.startswith("http://localhost")

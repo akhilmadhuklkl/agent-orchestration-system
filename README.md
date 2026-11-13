@@ -57,6 +57,8 @@ Workers use bounded exponential retries for transient failures. Reliability and 
 
 LLM planning is configurable with `MODEL_MODE=deterministic` (default) or `MODEL_MODE=openai` plus `OPENAI_API_KEY`. Model failures automatically fall back to deterministic planning.
 
+For a free local model, install Ollama and pull a model, then use `MODEL_MODE=ollama` and set `MODEL_NAME` (for example, `llama3.2`). Ollama runs locally at `http://localhost:11434` by default.
+
 Agents can select registered tools for supported task patterns. Tool calls pass through the same allow-list, risk, approval, and audit controls as direct API calls.
 
 Memory is scoped by a caller-provided namespace through `POST /memory` and `GET /memory/{scope}`. This prevents unrelated task or workspace context from being mixed accidentally.
