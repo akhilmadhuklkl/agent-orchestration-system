@@ -42,6 +42,27 @@ def test_task_can_be_rejected():
     rejected = approve_task(task.task_id, ApprovalRequest(approved=False))
     assert rejected.status == "rejected"
 
+def test_task_can_be_cancelled_and_retried():
+    task = create_task(TaskRequest(description="Prepare a cancellable task"))
+    cancelled = cancel_task(task.task_id)
+    assert cancelled.status == "cancelled"
+    retried = retry_task(task.task_id)
+    assert retried.status == "running"
+    assert any(event.event_type == "task.retried" for event in task_events(task.task_id))
+
+def test_task_actions_reject_invalid_states():
+    task = create_task(TaskRequest(description="Complete this task", require_approval=False))
+    try:
+        cancel_task(task.task_id)
+        raise AssertionError("completed tasks should not be cancellable")
+    except HTTPException as error:
+        assert error.status_code == 409
+    try:
+        retry_task(task.task_id)
+        raise AssertionError("completed tasks should not be retryable")
+    except HTTPException as error:
+        assert error.status_code == 409
+
 def test_planner_selects_specialized_agent():
     task = create_task(TaskRequest(description="Research competitors"))
     assert "Research Agent" in task.plan[1]
