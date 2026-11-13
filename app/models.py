@@ -52,6 +52,9 @@ class UserItem(BaseModel):
     role: str
     created_at: str
 
+class ApiKeyRevokeRequest(BaseModel):
+    api_key: str
+
 class TaskEvent(BaseModel):
     event_type: str
     message: str

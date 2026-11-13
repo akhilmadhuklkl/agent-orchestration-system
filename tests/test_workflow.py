@@ -112,6 +112,11 @@ def test_database_api_key_can_be_revoked():
     revoke_api_key(raw_key)
     assert api_key_user(raw_key) is None
 
+def test_security_headers_middleware_is_available():
+    from app.security_middleware import RateLimitMiddleware, SecurityHeadersMiddleware
+    assert RateLimitMiddleware is not None
+    assert SecurityHeadersMiddleware is not None
+
 def test_user_list_endpoint_returns_users():
     from app.database import save_user
     save_user("dashboard-user", "default", "member")

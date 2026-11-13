@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     workspace_id: str = "default"
     user_id: str = "local-user"
     user_role: str = "admin"
+    cors_origins: str = "http://localhost:8001,http://localhost:8002"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

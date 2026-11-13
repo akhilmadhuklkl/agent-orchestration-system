@@ -51,6 +51,8 @@ Identity metadata is available at `/identity`. Configure `USER_ID` and `USER_ROL
 
 Administrators can create database-backed users and one-time-visible API keys through `POST /admin/users`. Keys are stored as SHA-256 hashes and can be revoked at the repository layer.
 
+Security hardening includes configurable CORS, security headers, request rate limiting, and `POST /admin/api-keys/revoke` for administrator-controlled key revocation.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples

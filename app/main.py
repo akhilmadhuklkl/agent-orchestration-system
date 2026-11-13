@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from .agents import list_agents
@@ -16,6 +17,7 @@ from .database import (
     get_tool_runs,
     get_users,
     init_db,
+    revoke_api_key,
     save_api_key,
     save_task,
     save_user,
@@ -25,6 +27,7 @@ from .graph import build_graph
 from .identity import current_identity, require_admin
 from .memory import get_memories, init_memory, save_memory
 from .models import (
+    ApiKeyRevokeRequest,
     ApprovalRequest,
     MemoryItem,
     MemoryRequest,
@@ -45,6 +48,7 @@ from .observability import (
 )
 from .queue import enqueue
 from .security import require_api_key, require_workspace
+from .security_middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 from .tools import execute_tool, list_tools
 
 
@@ -54,6 +58,9 @@ async def lifespan(_app: FastAPI):
     yield
 
 app = FastAPI(title="Agent Orchestration System", version="0.1.0", lifespan=lifespan)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in settings.cors_origins.split(",")], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(RequestObservabilityMiddleware)
 graph = build_graph()
 init_db()
@@ -81,6 +88,11 @@ def create_user(request: UserCreateRequest):
 @app.get("/admin/users", response_model=list[UserItem], dependencies=[Depends(require_api_key), Depends(require_admin)])
 def users():
     return get_users()
+
+@app.post("/admin/api-keys/revoke", dependencies=[Depends(require_api_key), Depends(require_admin)])
+def revoke_key(request: ApiKeyRevokeRequest):
+    revoke_api_key(request.api_key)
+    return {"revoked": True}
 
 @app.get("/metrics")
 def metrics_endpoint():
