@@ -6,6 +6,40 @@ An MVP orchestration service built with Python and LangGraph, designed for durab
 
 This project demonstrates a multi-agent control plane rather than a single chatbot. It decomposes work, assigns capability-based agents, pauses for human approval, executes permissioned tools, persists an event timeline, retries transient failures, and reviews results before completion.
 
+### What this project demonstrates
+
+| Area | Implementation |
+| --- | --- |
+| Orchestration | LangGraph workflow with planning, approval, execution, and review stages |
+| Agents | Capability-based researcher, writer, analyst, and executor agents |
+| Safety | Human approval gates, tool allow-lists, risk levels, workspace and role checks |
+| Reliability | Redis worker mode, bounded retries, durable task/event history |
+| Storage | SQLite by default; PostgreSQL-supported repository adapter |
+| Observability | Request IDs, structured logs, metrics, tool-run and task timelines |
+| UI | Local control-room dashboard for tasks, approvals, tools, identity, and model status |
+
+The default configuration is deterministic and requires no paid API, subscription, or external service.
+
+## Architecture
+
+```text
+                 +----------------------+
+                 |  Control-room UI     |
+                 +----------+-----------+
+                            |
+                       FastAPI API
+                            |
+       +--------------------+--------------------+
+       |                    |                    |
+   LangGraph            Repository          Approval API
+ plan -> approve ->   SQLite/PostgreSQL      + audit events
+ execute -> review          |                    |
+       |                Task history        Human decision
+       +--------------------+--------------------+
+                            |
+                   Redis queue + worker
+```
+
 ## Run locally
 
 ```powershell
@@ -25,7 +59,7 @@ Tasks are persisted through SQLAlchemy. SQLite is the default for a zero-setup p
 
 ## Workflow
 
-`intake -> plan -> approval -> execute -> complete`
+`intake -> plan -> approval -> execute -> review -> complete`
 
 Tasks requiring approval pause before execution and can be resumed through the approval endpoint.
 
@@ -36,6 +70,25 @@ Run the deterministic end-to-end demo:
 ```powershell
 python scripts/demo.py
 ```
+
+The demo creates a task, pauses at the approval gate, approves it, executes the assigned agent workflow, and prints the final result plus the complete event timeline.
+
+To inspect the same flow manually:
+
+```powershell
+$task = Invoke-RestMethod -Method Post http://localhost:8001/tasks `
+  -ContentType 'application/json' `
+  -Body '{"description":"Prepare a launch checklist"}'
+
+$task
+Invoke-RestMethod -Method Post "http://localhost:8001/tasks/$($task.task_id)/approval" `
+  -ContentType 'application/json' `
+  -Body '{"approved":true}'
+
+Invoke-RestMethod "http://localhost:8001/tasks/$($task.task_id)/events"
+```
+
+The dashboard is available at `http://localhost:8001`; Swagger API documentation is available at `http://localhost:8001/docs` when running the local server. The Docker API is exposed at `http://localhost:8002`.
 
 Architecture details are available in [docs/architecture.md](docs/architecture.md).
 
@@ -76,6 +129,27 @@ Tools also declare risk levels. High-risk tools require `approved: true` in the 
 ## API examples
 
 ```powershell
-$task = Invoke-RestMethod -Method Post http://localhost:8000/tasks -ContentType 'application/json' -Body '{"description":"Prepare a launch checklist"}'
-Invoke-RestMethod -Method Post "http://localhost:8000/tasks/$($task.task_id)/approval" -ContentType 'application/json' -Body '{"approved":true}'
+# Create a task; approval-required tasks pause safely.
+$task = Invoke-RestMethod -Method Post http://localhost:8001/tasks `
+  -ContentType 'application/json' `
+  -Body '{"description":"Prepare a launch checklist"}'
+
+# Approve or reject the task.
+Invoke-RestMethod -Method Post "http://localhost:8001/tasks/$($task.task_id)/approval" `
+  -ContentType 'application/json' -Body '{"approved":true}'
+
+# Inspect task history and model readiness.
+Invoke-RestMethod "http://localhost:8001/tasks/$($task.task_id)/events"
+Invoke-RestMethod http://localhost:8001/model-status
 ```
+
+## Verification
+
+Run the complete automated checks before sharing changes:
+
+```powershell
+python -m pytest -q
+ruff check app tests
+```
+
+The test suite covers workflow transitions, approvals, task lifecycle actions, tool permissions, memory isolation, retries, evaluation cases, security dependencies, and local model status.
