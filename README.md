@@ -23,6 +23,14 @@ Tasks are persisted through SQLAlchemy. SQLite is the default for a zero-setup p
 
 Tasks requiring approval pause before execution and can be resumed through the approval endpoint.
 
+## Background worker mode
+
+The default `QUEUE_MODE=sync` runs locally without Redis. To use the worker architecture, start Redis with Docker Compose, set `QUEUE_MODE=redis`, then run:
+
+```powershell
+python -m app.worker
+```
+
 ## API examples
 
 ```powershell

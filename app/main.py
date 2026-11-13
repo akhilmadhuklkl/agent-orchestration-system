@@ -4,10 +4,12 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 
 from .agents import list_agents
+from .config import settings
 from .database import TaskRecord, add_event, get_events, init_db, save_task
 from .database import get_task as load_task
 from .graph import build_graph
 from .models import ApprovalRequest, TaskEvent, TaskRequest, TaskState
+from .queue import enqueue
 
 
 @asynccontextmanager
@@ -61,6 +63,12 @@ def approve_task(task_id: str, request: ApprovalRequest):
         add_event(task_id, "approval.rejected", "Human approval was rejected")
         return task_state(task)
     add_event(task_id, "approval.granted", "Human approval was granted")
+    if settings.queue_mode == "redis":
+        task.status = "queued"
+        save_task(task)
+        enqueue(task_id)
+        add_event(task_id, "task.queued", "Task was placed on the Redis worker queue")
+        return task_state(task)
     state = graph.invoke({"task_id": task.id, "description": task.description, "require_approval": False, "plan": task.plan})
     task.status = state["status"]
     task.result = state.get("result")
