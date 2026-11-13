@@ -11,6 +11,7 @@ from .database import (
     add_event,
     add_tool_run,
     get_events,
+    get_tasks,
     get_tool_runs,
     init_db,
     save_task,
@@ -92,6 +93,10 @@ def create_task(request: TaskRequest):
     if task.status == "completed":
         add_event(task_id, "task.completed", "Task completed successfully")
     return task_state(task)
+
+@app.get("/tasks", response_model=list[TaskState], dependencies=[Depends(require_api_key)])
+def tasks():
+    return [task_state(task) for task in get_tasks()]
 
 @app.get("/tasks/{task_id}", response_model=TaskState, dependencies=[Depends(require_api_key)])
 def get_task(task_id: str):

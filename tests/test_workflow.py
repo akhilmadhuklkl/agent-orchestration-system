@@ -7,6 +7,7 @@ from app.main import (
     get_task,
     run_tool,
     task_events,
+    tasks,
     tool_runs,
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
@@ -77,3 +78,7 @@ def test_api_key_policy_rejects_invalid_key(monkeypatch):
         assert error.status_code == 401
     else:
         raise AssertionError("invalid API key was accepted")
+
+def test_task_list_includes_created_tasks():
+    task = create_task(TaskRequest(description="List this task"))
+    assert any(item.task_id == task.task_id for item in tasks())

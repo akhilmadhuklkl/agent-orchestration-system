@@ -56,6 +56,11 @@ def get_task(task_id: str) -> TaskRecord | None:
         row = db.execute("SELECT id, description, require_approval, status, plan, result, error FROM tasks WHERE id = ?", (task_id,)).fetchone()
     return TaskRecord(row[0], row[1], bool(row[2]), row[3], json.loads(row[4]), row[5], row[6]) if row else None
 
+def get_tasks() -> list[TaskRecord]:
+    with connect() as db:
+        rows = db.execute("SELECT id, description, require_approval, status, plan, result, error FROM tasks ORDER BY rowid DESC").fetchall()
+    return [TaskRecord(row[0], row[1], bool(row[2]), row[3], json.loads(row[4]), row[5], row[6]) for row in rows]
+
 def add_event(task_id: str, event_type: str, message: str) -> None:
     with connect() as db:
         db.execute("INSERT INTO task_events VALUES (?, ?, ?, ?)", (task_id, event_type, message, datetime.now(UTC).isoformat()))
