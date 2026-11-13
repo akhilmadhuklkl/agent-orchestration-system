@@ -46,12 +46,16 @@ class GraphState(TypedDict, total=False):
     plan: list[str]
     result: str
     error: str
+    context: list[str]
     assigned_agent: str
     agent_role: str
 
 def plan_task(state: GraphState) -> GraphState:
     agent = choose_agent(state["description"])
-    return {"plan": generate_plan(state["description"]), "assigned_agent": agent.name, "agent_role": agent.role, "status": "planned"}
+    description = state["description"]
+    if state.get("context"):
+        description += "\nRelevant memory: " + "; ".join(state["context"])
+    return {"plan": generate_plan(description), "assigned_agent": agent.name, "agent_role": agent.role, "status": "planned"}
 
 def approval_gate(state: GraphState) -> GraphState:
     if state.get("require_approval"):

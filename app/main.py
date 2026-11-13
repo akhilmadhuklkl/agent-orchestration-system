@@ -111,7 +111,9 @@ def tool_runs():
 @app.post("/tasks", response_model=TaskState, status_code=201, dependencies=[Depends(require_api_key)])
 def create_task(request: TaskRequest):
     task_id = str(uuid4())
-    state = graph.invoke({"task_id": task_id, **request.model_dump()})
+    memory = get_memories("default")
+    context = [f"{item.key}={item.value}" for item in memory]
+    state = graph.invoke({"task_id": task_id, "context": context, **request.model_dump()})
     task = TaskRecord(id=task_id, description=request.description, require_approval=request.require_approval, status=state["status"], plan=state.get("plan", []), result=state.get("result"))
     save_task(task)
     add_event(task_id, "task.created", "Task was created")

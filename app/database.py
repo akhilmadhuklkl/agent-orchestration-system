@@ -39,6 +39,13 @@ class ToolRunRecord:
     error: str | None
     created_at: str
 
+@dataclass
+class MemoryRecord:
+    scope: str
+    key: str
+    value: object
+    created_at: str
+
 def _path() -> str:
     return settings.database_url.removeprefix("sqlite:///") if settings.database_url.startswith("sqlite:///") else "orchestrator.db"
 
@@ -68,6 +75,7 @@ def init_db() -> None:
         db.execute("CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, description TEXT NOT NULL, require_approval INTEGER NOT NULL, status TEXT NOT NULL, plan TEXT NOT NULL, result TEXT, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS task_events (task_id TEXT NOT NULL, event_type TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS tool_runs (tool TEXT NOT NULL, agent TEXT NOT NULL, status TEXT NOT NULL, arguments TEXT NOT NULL, result TEXT, error TEXT, created_at TEXT NOT NULL)")
+        db.execute("CREATE TABLE IF NOT EXISTS memories (scope TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(scope, key))")
 
 def save_task(task: TaskRecord) -> None:
     now = datetime.now(UTC).isoformat()
@@ -104,3 +112,17 @@ def get_tool_runs() -> list[ToolRunRecord]:
     with connect() as db:
         rows = db.execute("SELECT tool, agent, status, arguments, result, error, created_at FROM tool_runs ORDER BY rowid DESC").fetchall()
     return [ToolRunRecord(row[0], row[1], row[2], json.loads(row[3]), json.loads(row[4]) if row[4] else None, row[5], row[6]) for row in rows]
+
+def save_memory(scope: str, key: str, value: object) -> MemoryRecord:
+    now = datetime.now(UTC).isoformat()
+    with connect() as db:
+        if settings.database_url.startswith(("postgresql://", "postgres://")):
+            db.execute("INSERT INTO memories VALUES (?, ?, ?, ?) ON CONFLICT (scope, key) DO UPDATE SET value=EXCLUDED.value, created_at=EXCLUDED.created_at", (scope, key, json.dumps(value), now))
+        else:
+            db.execute("INSERT OR REPLACE INTO memories VALUES (?, ?, ?, ?)", (scope, key, json.dumps(value), now))
+    return MemoryRecord(scope, key, value, now)
+
+def get_memories(scope: str) -> list[MemoryRecord]:
+    with connect() as db:
+        rows = db.execute("SELECT scope, key, value, created_at FROM memories WHERE scope = ? ORDER BY created_at", (scope,)).fetchall()
+    return [MemoryRecord(row[0], row[1], json.loads(row[2]), row[3]) for row in rows]
