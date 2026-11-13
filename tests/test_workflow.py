@@ -14,6 +14,7 @@ from app.main import (
     task_events,
     tasks,
     tool_runs,
+    users,
     write_memory,
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
@@ -110,6 +111,11 @@ def test_database_api_key_can_be_revoked():
     assert api_key_user(raw_key) == "local-user"
     revoke_api_key(raw_key)
     assert api_key_user(raw_key) is None
+
+def test_user_list_endpoint_returns_users():
+    from app.database import save_user
+    save_user("dashboard-user", "default", "member")
+    assert any(user.user_id == "dashboard-user" for user in users())
 
 def test_task_list_includes_created_tasks():
     task = create_task(TaskRequest(description="List this task"))

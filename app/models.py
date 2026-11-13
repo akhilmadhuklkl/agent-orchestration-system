@@ -46,6 +46,12 @@ class UserCreateResponse(BaseModel):
     role: str
     api_key: str
 
+class UserItem(BaseModel):
+    user_id: str
+    workspace_id: str
+    role: str
+    created_at: str
+
 class TaskEvent(BaseModel):
     event_type: str
     message: str

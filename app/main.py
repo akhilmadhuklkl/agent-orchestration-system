@@ -14,6 +14,7 @@ from .database import (
     get_events,
     get_tasks,
     get_tool_runs,
+    get_users,
     init_db,
     save_api_key,
     save_task,
@@ -34,6 +35,7 @@ from .models import (
     ToolRun,
     UserCreateRequest,
     UserCreateResponse,
+    UserItem,
 )
 from .observability import (
     RequestObservabilityMiddleware,
@@ -75,6 +77,10 @@ def create_user(request: UserCreateRequest):
     save_user(request.user_id, request.workspace_id, request.role)
     save_api_key(raw_key, request.user_id)
     return UserCreateResponse(user_id=request.user_id, workspace_id=request.workspace_id, role=request.role, api_key=raw_key)
+
+@app.get("/admin/users", response_model=list[UserItem], dependencies=[Depends(require_api_key), Depends(require_admin)])
+def users():
+    return get_users()
 
 @app.get("/metrics")
 def metrics_endpoint():

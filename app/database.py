@@ -144,6 +144,11 @@ def save_user(user_id: str, workspace_id: str, role: str) -> UserRecord:
         db.execute(query, (user_id, workspace_id, role, now))
     return UserRecord(user_id, workspace_id, role, now)
 
+def get_users() -> list[UserRecord]:
+    with connect() as db:
+        rows = db.execute("SELECT user_id, workspace_id, role, created_at FROM users ORDER BY created_at").fetchall()
+    return [UserRecord(*row) for row in rows]
+
 def save_api_key(raw_key: str, user_id: str) -> None:
     digest = hashlib.sha256(raw_key.encode()).hexdigest()
     with connect() as db:
