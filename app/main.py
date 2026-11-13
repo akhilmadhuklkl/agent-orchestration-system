@@ -8,8 +8,15 @@ from .config import settings
 from .database import TaskRecord, add_event, get_events, init_db, save_task
 from .database import get_task as load_task
 from .graph import build_graph
-from .models import ApprovalRequest, TaskEvent, TaskRequest, TaskState
+from .models import (
+    ApprovalRequest,
+    TaskEvent,
+    TaskRequest,
+    TaskState,
+    ToolExecutionRequest,
+)
 from .queue import enqueue
+from .tools import execute_tool, list_tools
 
 
 @asynccontextmanager
@@ -28,6 +35,21 @@ def health():
 @app.get("/agents")
 def agents():
     return [{"name": agent.name, "role": agent.role, "capabilities": agent.capabilities} for agent in list_agents()]
+
+@app.get("/tools")
+def tools():
+    return [{"name": tool.name, "description": tool.description, "allowed_agents": tool.allowed_agents} for tool in list_tools()]
+
+@app.post("/tools/{tool_name}/execute")
+def run_tool(tool_name: str, request: ToolExecutionRequest):
+    try:
+        return {"tool": tool_name, "agent": request.agent, "result": execute_tool(tool_name, request.agent, request.arguments)}
+    except KeyError as error:
+        raise HTTPException(404, str(error)) from error
+    except PermissionError as error:
+        raise HTTPException(403, str(error)) from error
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
 
 @app.post("/tasks", response_model=TaskState, status_code=201)
 def create_task(request: TaskRequest):

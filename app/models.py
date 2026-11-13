@@ -10,6 +10,10 @@ class TaskRequest(BaseModel):
 class ApprovalRequest(BaseModel):
     approved: bool
 
+class ToolExecutionRequest(BaseModel):
+    agent: str
+    arguments: dict[str, Any] = {}
+
 class TaskEvent(BaseModel):
     event_type: str
     message: str

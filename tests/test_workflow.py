@@ -1,5 +1,6 @@
 from app.main import approve_task, create_task, get_task, task_events
 from app.models import ApprovalRequest, TaskRequest
+from app.tools import execute_tool
 
 
 def test_task_pauses_for_approval():
@@ -28,3 +29,12 @@ def test_worker_processes_queued_task():
     task = create_task(TaskRequest(description="Run a queued health check"))
     approved = approve_task(task.task_id, ApprovalRequest(approved=True))
     assert approved.status == "completed"
+
+def test_tool_permissions_are_enforced():
+    assert execute_tool("word_count", "writer", {"text": "one two three"}) == {"words": 3}
+    try:
+        execute_tool("word_count", "researcher", {"text": "one"})
+    except PermissionError:
+        pass
+    else:
+        raise AssertionError("unauthorized tool call was accepted")
