@@ -27,3 +27,32 @@ jobs:
 
       - name: Test
         run: python -m pytest -q
+
+  docker-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start local stack
+        run: docker compose up -d --build
+
+      - name: Wait for API
+        run: curl --fail --retry 20 --retry-delay 3 http://localhost:8002/health
+
+      - name: Verify model status
+        run: |
+          curl --fail http://localhost:8002/model-status
+          curl --fail http://localhost:8002/metrics
+
+      - name: Show service status
+        if: always()
+        run: docker compose ps
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop local stack
+        if: always()
+        run: docker compose down -v
