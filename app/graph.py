@@ -1,6 +1,7 @@
 from typing import TypedDict
 
 from .agents import choose_agent
+from .llm import generate_plan
 
 try:
     from langgraph.graph import END, START, StateGraph
@@ -48,7 +49,7 @@ class GraphState(TypedDict, total=False):
 
 def plan_task(state: GraphState) -> GraphState:
     agent = choose_agent(state["description"])
-    return {"plan": ["Understand the request", f"Delegate to {agent.role}", "Produce and validate the result"], "assigned_agent": agent.name, "agent_role": agent.role, "status": "planned"}
+    return {"plan": generate_plan(state["description"]), "assigned_agent": agent.name, "agent_role": agent.role, "status": "planned"}
 
 def approval_gate(state: GraphState) -> GraphState:
     if state.get("require_approval"):

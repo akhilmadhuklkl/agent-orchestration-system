@@ -1,3 +1,4 @@
+from app.config import settings
 from app.graph import build_graph
 
 
@@ -7,3 +8,6 @@ def test_routing_evaluation_cases():
     for description, expected_agent in cases:
         result = graph.invoke({"description": description, "require_approval": False})
         assert expected_agent in result["plan"][1]
+
+def test_deterministic_model_mode_is_available():
+    assert settings.model_mode == "deterministic"

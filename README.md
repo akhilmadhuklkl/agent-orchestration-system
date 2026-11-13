@@ -39,6 +39,8 @@ Observability endpoints include `/health` and `/metrics`. API responses also inc
 
 Workers use bounded exponential retries for transient failures. Reliability and routing evaluation cases are covered in `tests/test_reliability.py` and `tests/test_evaluation.py`.
 
+LLM planning is configurable with `MODEL_MODE=deterministic` (default) or `MODEL_MODE=openai` plus `OPENAI_API_KEY`. Model failures automatically fall back to deterministic planning.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples

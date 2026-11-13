@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     queue_mode: str = "sync"
     api_key: str = ""
+    model_mode: str = "deterministic"
+    openai_api_key: str = ""
+    model_name: str = "gpt-4.1-mini"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
