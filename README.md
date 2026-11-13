@@ -101,6 +101,10 @@ The dashboard is available at `http://localhost:8001`; Swagger API documentation
 Architecture details are available in [docs/architecture.md](docs/architecture.md).
 The final portfolio review and prioritized roadmap are available in [docs/portfolio-checklist.md](docs/portfolio-checklist.md).
 
+### UI preview
+
+The local control room presents the project as an operations console: model readiness and queue metrics at the top, task creation and approval inbox in the center, and a task-detail panel with status, plan, result, and event timeline for inspection. Registered tools, recent tool runs, workspace administration, cancellation, and retry controls remain visible in the same view.
+
 ## Background worker mode
 
 The default `QUEUE_MODE=sync` runs locally without Redis. To use the worker architecture, start Redis with Docker Compose, set `QUEUE_MODE=redis`, then run:
