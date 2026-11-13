@@ -18,6 +18,7 @@ from .database import (
 )
 from .database import get_task as load_task
 from .graph import build_graph
+from .identity import current_identity, require_admin
 from .memory import get_memories, init_memory, save_memory
 from .models import (
     ApprovalRequest,
@@ -54,6 +55,14 @@ init_memory()
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/identity")
+def identity():
+    return current_identity()
+
+@app.get("/admin/access-check", dependencies=[Depends(require_api_key), Depends(require_admin)])
+def admin_access_check():
+    return {"authorized": True, "role": settings.user_role, "workspace_id": settings.workspace_id}
 
 @app.get("/metrics")
 def metrics_endpoint():

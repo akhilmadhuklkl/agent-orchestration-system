@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     model_name: str = "gpt-4.1-mini"
     workspace_id: str = "default"
+    user_id: str = "local-user"
+    user_role: str = "admin"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

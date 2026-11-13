@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+from app.identity import require_admin
 from app.main import (
     approve_task,
     cancel_task,
@@ -92,6 +93,15 @@ def test_workspace_policy_rejects_wrong_workspace(monkeypatch):
         assert error.status_code == 403
     else:
         raise AssertionError("wrong workspace was accepted")
+
+def test_role_policy_rejects_non_admin(monkeypatch):
+    monkeypatch.setattr("app.config.settings.user_role", "member")
+    try:
+        require_admin()
+    except HTTPException as error:
+        assert error.status_code == 403
+    else:
+        raise AssertionError("member role was accepted for admin operation")
 
 def test_task_list_includes_created_tasks():
     task = create_task(TaskRequest(description="List this task"))

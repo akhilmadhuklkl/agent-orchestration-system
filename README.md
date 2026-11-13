@@ -47,6 +47,8 @@ Memory is scoped by a caller-provided namespace through `POST /memory` and `GET 
 
 Set `WORKSPACE_ID` to enable workspace enforcement. Protected memory routes then require a matching `X-Workspace-ID` header; `default` keeps the local demo open.
 
+Identity metadata is available at `/identity`. Configure `USER_ID` and `USER_ROLE`; administrator-only routes use the role dependency and return `403` for non-admin users.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples
