@@ -1,6 +1,14 @@
 # Agent Orchestration System
 
+[![CI](https://github.com/akhilmadhuklkl/agent-orchestration-system/actions/workflows/ci.yml/badge.svg)](https://github.com/akhilmadhuklkl/agent-orchestration-system/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Local-first](https://img.shields.io/badge/runtime-local--first-22c55e)](https://github.com/akhilmadhuklkl/agent-orchestration-system)
+
 An MVP orchestration service built with Python and LangGraph, designed for durable task execution, agent delegation, tool boundaries, and human approval.
+
+## Project status
+
+Portfolio-ready local MVP. The application runs without paid services using deterministic planning, with optional PostgreSQL, Redis worker mode, Ollama, and OpenAI adapters available when needed. Deployment is intentionally out of scope for now.
 
 ## Portfolio summary
 
