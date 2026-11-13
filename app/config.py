@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     app_env: str = "development"
     queue_mode: str = "sync"
+    api_key: str = ""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

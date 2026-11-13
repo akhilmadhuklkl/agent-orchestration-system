@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 from .agents import list_agents
@@ -26,6 +26,7 @@ from .models import (
     ToolRun,
 )
 from .queue import enqueue
+from .security import require_api_key
 from .tools import execute_tool, list_tools
 
 
@@ -46,15 +47,15 @@ def health():
 def dashboard():
     return FileResponse("app/static/index.html")
 
-@app.get("/agents")
+@app.get("/agents", dependencies=[Depends(require_api_key)])
 def agents():
     return [{"name": agent.name, "role": agent.role, "capabilities": agent.capabilities} for agent in list_agents()]
 
-@app.get("/tools")
+@app.get("/tools", dependencies=[Depends(require_api_key)])
 def tools():
     return [{"name": tool.name, "description": tool.description, "allowed_agents": tool.allowed_agents, "risk": tool.risk} for tool in list_tools()]
 
-@app.post("/tools/{tool_name}/execute")
+@app.post("/tools/{tool_name}/execute", dependencies=[Depends(require_api_key)])
 def run_tool(tool_name: str, request: ToolExecutionRequest):
     try:
         tool = next((item for item in list_tools() if item.name == tool_name), None)
@@ -74,11 +75,11 @@ def run_tool(tool_name: str, request: ToolExecutionRequest):
         add_tool_run(tool_name, request.agent, "failed", request.arguments, error=str(error))
         raise HTTPException(422, str(error)) from error
 
-@app.get("/tool-runs", response_model=list[ToolRun])
+@app.get("/tool-runs", response_model=list[ToolRun], dependencies=[Depends(require_api_key)])
 def tool_runs():
     return [ToolRun(**run.__dict__) for run in get_tool_runs()]
 
-@app.post("/tasks", response_model=TaskState, status_code=201)
+@app.post("/tasks", response_model=TaskState, status_code=201, dependencies=[Depends(require_api_key)])
 def create_task(request: TaskRequest):
     task_id = str(uuid4())
     state = graph.invoke({"task_id": task_id, **request.model_dump()})
@@ -92,14 +93,14 @@ def create_task(request: TaskRequest):
         add_event(task_id, "task.completed", "Task completed successfully")
     return task_state(task)
 
-@app.get("/tasks/{task_id}", response_model=TaskState)
+@app.get("/tasks/{task_id}", response_model=TaskState, dependencies=[Depends(require_api_key)])
 def get_task(task_id: str):
     task = load_task(task_id)
     if not task:
         raise HTTPException(404, "Task not found")
     return task_state(task)
 
-@app.post("/tasks/{task_id}/approval", response_model=TaskState)
+@app.post("/tasks/{task_id}/approval", response_model=TaskState, dependencies=[Depends(require_api_key)])
 def approve_task(task_id: str, request: ApprovalRequest):
     task = load_task(task_id)
     if not task:
@@ -126,7 +127,7 @@ def approve_task(task_id: str, request: ApprovalRequest):
     add_event(task_id, "task.completed", "Task completed successfully")
     return task_state(task)
 
-@app.get("/tasks/{task_id}/events", response_model=list[TaskEvent])
+@app.get("/tasks/{task_id}/events", response_model=list[TaskEvent], dependencies=[Depends(require_api_key)])
 def task_events(task_id: str):
     if not load_task(task_id):
         raise HTTPException(404, "Task not found")

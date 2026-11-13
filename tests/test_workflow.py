@@ -10,6 +10,7 @@ from app.main import (
     tool_runs,
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
+from app.security import require_api_key
 from app.tools import execute_tool
 
 
@@ -67,3 +68,12 @@ def test_high_risk_tool_requires_approval():
 
 def test_dashboard_is_available():
     assert dashboard().path.endswith("app/static/index.html")
+
+def test_api_key_policy_rejects_invalid_key(monkeypatch):
+    monkeypatch.setattr("app.security.settings.api_key", "secret")
+    try:
+        require_api_key("wrong")
+    except HTTPException as error:
+        assert error.status_code == 401
+    else:
+        raise AssertionError("invalid API key was accepted")
