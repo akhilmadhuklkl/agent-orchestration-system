@@ -2,6 +2,7 @@
 from .database import add_event, get_task, save_task
 from .graph import build_graph
 from .queue import dequeue
+from .reliability import run_with_retries
 
 
 def process_task(task_id: str) -> None:
@@ -11,7 +12,7 @@ def process_task(task_id: str) -> None:
     task.status = "running"
     save_task(task)
     add_event(task_id, "worker.started", "Background worker started the task")
-    state = build_graph().invoke({"task_id": task.id, "description": task.description, "require_approval": False, "plan": task.plan})
+    state = run_with_retries(lambda: build_graph().invoke({"task_id": task.id, "description": task.description, "require_approval": False, "plan": task.plan}))
     task.status = state["status"]
     task.result = state.get("result")
     save_task(task)

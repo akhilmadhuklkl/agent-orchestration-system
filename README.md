@@ -37,6 +37,8 @@ For the full local stack, run `docker compose up --build`. The API is then avail
 
 Observability endpoints include `/health` and `/metrics`. API responses also include an `X-Request-ID` header, and structured request logs contain method, path, status, request ID, and duration.
 
+Workers use bounded exponential retries for transient failures. Reliability and routing evaluation cases are covered in `tests/test_reliability.py` and `tests/test_evaluation.py`.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples
