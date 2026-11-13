@@ -4,10 +4,10 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 
 from .agents import list_agents
-from .database import TaskRecord, init_db, save_task
+from .database import TaskRecord, add_event, get_events, init_db, save_task
 from .database import get_task as load_task
 from .graph import build_graph
-from .models import ApprovalRequest, TaskRequest, TaskState
+from .models import ApprovalRequest, TaskEvent, TaskRequest, TaskState
 
 
 @asynccontextmanager
@@ -33,6 +33,12 @@ def create_task(request: TaskRequest):
     state = graph.invoke({"task_id": task_id, **request.model_dump()})
     task = TaskRecord(id=task_id, description=request.description, require_approval=request.require_approval, status=state["status"], plan=state.get("plan", []), result=state.get("result"))
     save_task(task)
+    add_event(task_id, "task.created", "Task was created")
+    add_event(task_id, "task.planned", "A plan was generated")
+    add_event(task_id, "agent.assigned", f"Delegated to the {state.get('agent_role', 'General Execution Agent')}")
+    add_event(task_id, "approval.requested" if request.require_approval else "task.queued", "Waiting for human approval" if request.require_approval else "Ready for execution")
+    if task.status == "completed":
+        add_event(task_id, "task.completed", "Task completed successfully")
     return task_state(task)
 
 @app.get("/tasks/{task_id}", response_model=TaskState)
@@ -52,12 +58,22 @@ def approve_task(task_id: str, request: ApprovalRequest):
     if not request.approved:
         task.status = "rejected"
         save_task(task)
+        add_event(task_id, "approval.rejected", "Human approval was rejected")
         return task_state(task)
+    add_event(task_id, "approval.granted", "Human approval was granted")
     state = graph.invoke({"task_id": task.id, "description": task.description, "require_approval": False, "plan": task.plan})
     task.status = state["status"]
     task.result = state.get("result")
     save_task(task)
+    add_event(task_id, "worker.completed", "Assigned agent completed the task")
+    add_event(task_id, "task.completed", "Task completed successfully")
     return task_state(task)
+
+@app.get("/tasks/{task_id}/events", response_model=list[TaskEvent])
+def task_events(task_id: str):
+    if not load_task(task_id):
+        raise HTTPException(404, "Task not found")
+    return [TaskEvent(event_type=event.event_type, message=event.message, created_at=event.created_at) for event in get_events(task_id)]
 
 def task_state(task: TaskRecord) -> TaskState:
     return TaskState(task_id=task.id, description=task.description, require_approval=task.require_approval, status=task.status, plan=task.plan, result=task.result, error=task.error)

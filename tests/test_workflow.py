@@ -1,4 +1,4 @@
-from app.main import approve_task, create_task, get_task
+from app.main import approve_task, create_task, get_task, task_events
 from app.models import ApprovalRequest, TaskRequest
 
 
@@ -8,6 +8,8 @@ def test_task_pauses_for_approval():
     approved = approve_task(task.task_id, ApprovalRequest(approved=True))
     assert approved.status == "completed"
     assert get_task(task.task_id).result.startswith("Writing Agent completed")
+    event_types = [event.event_type for event in task_events(task.task_id)]
+    assert event_types == ["task.created", "task.planned", "agent.assigned", "approval.requested", "approval.granted", "worker.completed", "task.completed"]
 
 def test_task_can_run_without_approval():
     task = create_task(TaskRequest(description="Run a health check", require_approval=False))

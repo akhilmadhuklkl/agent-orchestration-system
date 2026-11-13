@@ -10,6 +10,11 @@ class TaskRequest(BaseModel):
 class ApprovalRequest(BaseModel):
     approved: bool
 
+class TaskEvent(BaseModel):
+    event_type: str
+    message: str
+    created_at: str
+
 class TaskState(BaseModel):
     task_id: str
     description: str
