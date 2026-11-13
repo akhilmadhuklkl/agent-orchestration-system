@@ -36,7 +36,7 @@ from .observability import (
     record_tool,
 )
 from .queue import enqueue
-from .security import require_api_key
+from .security import require_api_key, require_workspace
 from .tools import execute_tool, list_tools
 
 
@@ -59,11 +59,11 @@ def health():
 def metrics_endpoint():
     return dict(metrics)
 
-@app.post("/memory", response_model=MemoryItem, dependencies=[Depends(require_api_key)])
+@app.post("/memory", response_model=MemoryItem, dependencies=[Depends(require_api_key), Depends(require_workspace)])
 def write_memory(request: MemoryRequest):
     return save_memory(request.scope, request.key, request.value)
 
-@app.get("/memory/{scope}", response_model=list[MemoryItem], dependencies=[Depends(require_api_key)])
+@app.get("/memory/{scope}", response_model=list[MemoryItem], dependencies=[Depends(require_api_key), Depends(require_workspace)])
 def read_memory(scope: str):
     return get_memories(scope)
 

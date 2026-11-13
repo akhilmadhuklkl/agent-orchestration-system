@@ -45,6 +45,8 @@ Agents can select registered tools for supported task patterns. Tool calls pass 
 
 Memory is scoped by a caller-provided namespace through `POST /memory` and `GET /memory/{scope}`. This prevents unrelated task or workspace context from being mixed accidentally.
 
+Set `WORKSPACE_ID` to enable workspace enforcement. Protected memory routes then require a matching `X-Workspace-ID` header; `default` keeps the local demo open.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples

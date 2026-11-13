@@ -16,7 +16,7 @@ from app.main import (
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
 from app.observability import metrics
-from app.security import require_api_key
+from app.security import require_api_key, require_workspace
 from app.tools import execute_tool
 
 
@@ -83,6 +83,15 @@ def test_api_key_policy_rejects_invalid_key(monkeypatch):
         assert error.status_code == 401
     else:
         raise AssertionError("invalid API key was accepted")
+
+def test_workspace_policy_rejects_wrong_workspace(monkeypatch):
+    monkeypatch.setattr("app.security.settings.workspace_id", "team-a")
+    try:
+        require_workspace("team-b")
+    except HTTPException as error:
+        assert error.status_code == 403
+    else:
+        raise AssertionError("wrong workspace was accepted")
 
 def test_task_list_includes_created_tasks():
     task = create_task(TaskRequest(description="List this task"))

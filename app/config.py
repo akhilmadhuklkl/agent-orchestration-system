@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     model_mode: str = "deterministic"
     openai_api_key: str = ""
     model_name: str = "gpt-4.1-mini"
+    workspace_id: str = "default"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
