@@ -99,6 +99,7 @@ Invoke-RestMethod "http://localhost:8001/tasks/$($task.task_id)/events"
 The dashboard is available at `http://localhost:8001`; Swagger API documentation is available at `http://localhost:8001/docs` when running the local server. The Docker API is exposed at `http://localhost:8002`.
 
 Architecture details are available in [docs/architecture.md](docs/architecture.md).
+The final portfolio review and prioritized roadmap are available in [docs/portfolio-checklist.md](docs/portfolio-checklist.md).
 
 ## Background worker mode
 
