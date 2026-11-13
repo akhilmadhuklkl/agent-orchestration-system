@@ -2,9 +2,11 @@ from fastapi import HTTPException
 
 from app.main import (
     approve_task,
+    cancel_task,
     create_task,
     dashboard,
     get_task,
+    retry_task,
     run_tool,
     task_events,
     tasks,
@@ -82,3 +84,10 @@ def test_api_key_policy_rejects_invalid_key(monkeypatch):
 def test_task_list_includes_created_tasks():
     task = create_task(TaskRequest(description="List this task"))
     assert any(item.task_id == task.task_id for item in tasks())
+
+def test_task_can_be_cancelled_and_retried():
+    task = create_task(TaskRequest(description="Cancel me"))
+    cancelled = cancel_task(task.task_id)
+    assert cancelled.status == "cancelled"
+    retried = retry_task(task.task_id)
+    assert retried.status == "awaiting_approval"

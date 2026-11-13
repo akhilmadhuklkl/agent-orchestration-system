@@ -33,7 +33,7 @@ class TaskState(BaseModel):
     task_id: str
     description: str
     require_approval: bool
-    status: Literal["planned", "awaiting_approval", "running", "completed", "rejected", "failed"]
+    status: Literal["planned", "awaiting_approval", "queued", "running", "completed", "rejected", "failed", "cancelled"]
     plan: list[str] = []
     result: Any | None = None
     error: str | None = None

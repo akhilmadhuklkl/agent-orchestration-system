@@ -95,8 +95,34 @@ def create_task(request: TaskRequest):
     return task_state(task)
 
 @app.get("/tasks", response_model=list[TaskState], dependencies=[Depends(require_api_key)])
-def tasks():
-    return [task_state(task) for task in get_tasks()]
+def tasks(status: str | None = None):
+    items = [task_state(task) for task in get_tasks()]
+    return [task for task in items if status is None or task.status == status]
+
+@app.post("/tasks/{task_id}/cancel", response_model=TaskState, dependencies=[Depends(require_api_key)])
+def cancel_task(task_id: str):
+    task = load_task(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    if task.status in {"completed", "rejected", "cancelled"}:
+        raise HTTPException(409, "Task cannot be cancelled in its current state")
+    task.status = "cancelled"
+    save_task(task)
+    add_event(task_id, "task.cancelled", "Task was cancelled by a user")
+    return task_state(task)
+
+@app.post("/tasks/{task_id}/retry", response_model=TaskState, dependencies=[Depends(require_api_key)])
+def retry_task(task_id: str):
+    task = load_task(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    if task.status not in {"failed", "rejected", "cancelled"}:
+        raise HTTPException(409, "Only failed, rejected, or cancelled tasks can be retried")
+    task.status = "awaiting_approval" if task.require_approval else "running"
+    task.result = None
+    save_task(task)
+    add_event(task_id, "task.retried", "Task was sent back through the workflow")
+    return task_state(task)
 
 @app.get("/tasks/{task_id}", response_model=TaskState, dependencies=[Depends(require_api_key)])
 def get_task(task_id: str):
