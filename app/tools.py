@@ -9,6 +9,7 @@ class Tool:
     description: str
     allowed_agents: tuple[str, ...]
     handler: Callable[[dict[str, Any]], Any]
+    risk: str = "low"
 
 def _task_summary(arguments: dict[str, Any]) -> dict[str, Any]:
     description = arguments.get("description", "").strip()
@@ -22,9 +23,17 @@ def _word_count(arguments: dict[str, Any]) -> dict[str, int]:
         raise ValueError("text is required")
     return {"words": len(text.split())}
 
+def _send_notification(arguments: dict[str, Any]) -> dict[str, str]:
+    recipient = arguments.get("recipient", "").strip()
+    message = arguments.get("message", "").strip()
+    if not recipient or not message:
+        raise ValueError("recipient and message are required")
+    return {"status": "simulated", "recipient": recipient, "message": message}
+
 TOOLS = (
     Tool("task_summary", "Create a short summary of a task", ("planner", "writer", "executor"), _task_summary),
     Tool("word_count", "Count words in supplied text", ("writer", "analyst", "executor"), _word_count),
+    Tool("send_notification", "Send a notification to a recipient (simulated)", ("executor",), _send_notification, "high"),
 )
 
 def list_tools() -> list[Tool]:

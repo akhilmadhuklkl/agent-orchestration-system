@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from app.main import (
     approve_task,
     create_task,
@@ -6,7 +8,7 @@ from app.main import (
     task_events,
     tool_runs,
 )
-from app.models import ApprovalRequest, TaskRequest
+from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
 from app.tools import execute_tool
 
 
@@ -51,3 +53,13 @@ def test_tool_run_history_records_success():
     response = run_tool("word_count", request)
     assert response["result"] == {"words": 2}
     assert tool_runs()[0].status == "completed"
+
+def test_high_risk_tool_requires_approval():
+    try:
+        run_tool("send_notification", ToolExecutionRequest(agent="executor", arguments={"recipient": "demo", "message": "hello"}))
+    except HTTPException as error:
+        assert error.status_code == 409
+    else:
+        raise AssertionError("high-risk tool ran without approval")
+    response = run_tool("send_notification", ToolExecutionRequest(agent="executor", approved=True, arguments={"recipient": "demo", "message": "hello"}))
+    assert response["result"]["status"] == "simulated"

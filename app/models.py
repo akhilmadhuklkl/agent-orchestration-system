@@ -13,6 +13,7 @@ class ApprovalRequest(BaseModel):
 class ToolExecutionRequest(BaseModel):
     agent: str
     arguments: dict[str, Any] = {}
+    approved: bool = False
 
 class ToolRun(BaseModel):
     tool: str

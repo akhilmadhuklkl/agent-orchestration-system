@@ -31,6 +31,8 @@ The default `QUEUE_MODE=sync` runs locally without Redis. To use the worker arch
 python -m app.worker
 ```
 
+Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
+
 ## API examples
 
 ```powershell

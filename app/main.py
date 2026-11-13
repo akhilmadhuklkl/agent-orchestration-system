@@ -47,11 +47,15 @@ def agents():
 
 @app.get("/tools")
 def tools():
-    return [{"name": tool.name, "description": tool.description, "allowed_agents": tool.allowed_agents} for tool in list_tools()]
+    return [{"name": tool.name, "description": tool.description, "allowed_agents": tool.allowed_agents, "risk": tool.risk} for tool in list_tools()]
 
 @app.post("/tools/{tool_name}/execute")
 def run_tool(tool_name: str, request: ToolExecutionRequest):
     try:
+        tool = next((item for item in list_tools() if item.name == tool_name), None)
+        if tool and tool.risk == "high" and not request.approved:
+            add_tool_run(tool_name, request.agent, "approval_required", request.arguments, error="High-risk tool requires human approval")
+            raise HTTPException(409, "Human approval is required for this high-risk tool")
         result = execute_tool(tool_name, request.agent, request.arguments)
         add_tool_run(tool_name, request.agent, "completed", request.arguments, result=result)
         return {"tool": tool_name, "agent": request.agent, "result": result}
