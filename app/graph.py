@@ -1,7 +1,8 @@
 from typing import TypedDict
 
 from .agents import choose_agent
-from .llm import generate_plan, generate_result, review_result
+from .llm import choose_tool, generate_plan, generate_result, review_result
+from .tools import execute_tool
 
 try:
     from langgraph.graph import END, START, StateGraph
@@ -59,7 +60,16 @@ def approval_gate(state: GraphState) -> GraphState:
 
 def execute_task(state: GraphState) -> GraphState:
     agent = choose_agent(state["description"])
-    return {"status": "reviewing", "result": generate_result(state["description"], state.get("agent_role", agent.role))}
+    agent_name = state.get("assigned_agent", agent.name)
+    tool_name = choose_tool(state["description"], agent_name)
+    tool_result = ""
+    if tool_name:
+        try:
+            arguments = {"text": state["description"]} if tool_name == "word_count" else {"description": state["description"]}
+            tool_result = f" Tool result: {execute_tool(tool_name, agent_name, arguments)}"
+        except (KeyError, PermissionError, ValueError) as error:
+            tool_result = f" Tool unavailable: {error}"
+    return {"status": "reviewing", "result": generate_result(state["description"], state.get("agent_role", agent.role)) + tool_result}
 
 def review_task(state: GraphState) -> GraphState:
     passed, reason = review_result(state["description"], state["result"])

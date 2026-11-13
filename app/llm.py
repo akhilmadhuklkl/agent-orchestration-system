@@ -2,6 +2,15 @@ from .agents import choose_agent
 from .config import settings
 
 
+def choose_tool(description: str, agent: str) -> str | None:
+    text = description.lower()
+    if "count" in text and "word" in text and agent in {"writer", "analyst", "executor"}:
+        return "word_count"
+    if "summarize" in text and agent in {"planner", "writer", "executor"}:
+        return "task_summary"
+    return None
+
+
 def generate_plan(description: str) -> list[str]:
     agent = choose_agent(description)
     fallback = ["Understand the request", f"Delegate to {agent.role}", "Produce and validate the result"]
