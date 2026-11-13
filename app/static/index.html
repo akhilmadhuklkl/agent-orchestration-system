@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orchestrator Console</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1120; --panel:#111a2e; --muted:#8b9bb7; --accent:#67e8f9; --good:#86efac; --warn:#fde68a; }
+    * { box-sizing:border-box; } body { margin:0; font:14px system-ui,sans-serif; background:var(--bg); color:#e5edf9; }
+    header { padding:28px 5vw; border-bottom:1px solid #24314b; } h1 { margin:0 0 6px; } header p { margin:0;color:var(--muted); }
+    main { max-width:1200px; margin:28px auto; padding:0 20px; } .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+    .card { background:var(--panel); border:1px solid #24314b; border-radius:14px; padding:18px; } .card h2 { margin:0 0 14px; font-size:16px; }
+    .metric { font-size:30px; color:var(--accent); } .muted { color:var(--muted); } .pill { display:inline-block; padding:4px 8px; border-radius:99px; background:#20304b; margin:3px; font-size:12px; }
+    input,button { border:1px solid #334665; border-radius:8px; padding:10px; background:#0d1628; color:inherit; } input { width:70%; } button { cursor:pointer; background:#164e63; }
+    pre { white-space:pre-wrap; color:var(--muted); } .event { border-left:2px solid var(--accent); padding:7px 12px; margin:8px 0; } .success { color:var(--good); } .warning { color:var(--warn); }
+  </style>
+</head>
+<body>
+  <header><h1>Orchestrator Console</h1><p>Inspect agents, tasks, approvals, workflow history, and tool execution.</p></header>
+  <main>
+    <section class="grid" id="metrics"></section>
+    <section class="grid" style="margin-top:16px">
+      <div class="card"><h2>Submit task</h2><input id="description" placeholder="Research competitors" /><button onclick="createTask()">Create</button><pre id="taskResult"></pre></div>
+      <div class="card"><h2>Registered agents</h2><div id="agents"></div></div>
+      <div class="card"><h2>Registered tools</h2><div id="tools"></div></div>
+    </section>
+    <section class="grid" style="margin-top:16px">
+      <div class="card"><h2>Task timeline</h2><input id="taskId" placeholder="Task ID" /><button onclick="loadTimeline()">Load</button><div id="timeline"></div></div>
+      <div class="card"><h2>Tool execution history</h2><div id="runs"></div></div>
+    </section>
+  </main>
+  <script>
+    const api = '';
+    async function get(path) { const r = await fetch(api + path); return r.json(); }
+    async function refresh() {
+      const [agents, tools, runs] = await Promise.all([get('/agents'), get('/tools'), get('/tool-runs')]);
+      document.querySelector('#agents').innerHTML = agents.map(a => `<span class="pill">${a.role}</span>`).join('');
+      document.querySelector('#tools').innerHTML = tools.map(t => `<span class="pill">${t.name} · ${t.risk}</span>`).join('');
+      document.querySelector('#runs').innerHTML = runs.slice(0,8).map(r => `<div class="event"><b>${r.tool}</b> · ${r.agent}<br><span class="${r.status==='completed'?'success':'warning'}">${r.status}</span></div>`).join('') || '<span class="muted">No tool calls yet</span>';
+      document.querySelector('#metrics').innerHTML = `<div class="card"><div class="metric">${agents.length}</div><div class="muted">Agents</div></div><div class="card"><div class="metric">${tools.length}</div><div class="muted">Tools</div></div><div class="card"><div class="metric">${runs.length}</div><div class="muted">Tool runs</div></div>`;
+    }
+    async function createTask() { const description=document.querySelector('#description').value; const r=await fetch('/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({description})}); const task=await r.json(); document.querySelector('#taskId').value=task.task_id; document.querySelector('#taskResult').textContent=JSON.stringify(task,null,2); await loadTimeline(); }
+    async function loadTimeline() { const id=document.querySelector('#taskId').value; if(!id)return; const events=await get(`/tasks/${id}/events`); document.querySelector('#timeline').innerHTML=events.map(e=>`<div class="event"><b>${e.event_type}</b><br>${e.message}<br><small class="muted">${e.created_at}</small></div>`).join('') || '<span class="muted">No events</span>'; }
+    refresh(); setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from .agents import list_agents
 from .config import settings
@@ -40,6 +41,10 @@ init_db()
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/")
+def dashboard():
+    return FileResponse("app/static/index.html")
 
 @app.get("/agents")
 def agents():

@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from app.main import (
     approve_task,
     create_task,
+    dashboard,
     get_task,
     run_tool,
     task_events,
@@ -63,3 +64,6 @@ def test_high_risk_tool_requires_approval():
         raise AssertionError("high-risk tool ran without approval")
     response = run_tool("send_notification", ToolExecutionRequest(agent="executor", approved=True, arguments={"recipient": "demo", "message": "hello"}))
     assert response["result"]["status"] == "simulated"
+
+def test_dashboard_is_available():
+    assert dashboard().path.endswith("app/static/index.html")
