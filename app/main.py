@@ -2,6 +2,7 @@ import secrets
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -69,6 +70,21 @@ init_memory()
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/model-status")
+def model_status():
+    if settings.model_mode == "deterministic":
+        return {"mode": "deterministic", "model": "built-in fallback", "available": True, "detail": "No external model required"}
+    if settings.model_mode == "ollama":
+        try:
+            response = httpx.get(f"{settings.ollama_base_url}/api/tags", timeout=3)
+            response.raise_for_status()
+            models = [item.get("name") for item in response.json().get("models", [])]
+            available = settings.model_name in models or any(name and name.split(":")[0] == settings.model_name.split(":")[0] for name in models)
+            return {"mode": "ollama", "model": settings.model_name, "available": available, "detail": "Model ready" if available else "Model not pulled", "models": models}
+        except (httpx.HTTPError, ValueError, KeyError):
+            return {"mode": "ollama", "model": settings.model_name, "available": False, "detail": "Ollama is not running"}
+    return {"mode": "openai", "model": settings.model_name, "available": bool(settings.openai_api_key), "detail": "API key configured" if settings.openai_api_key else "API key not configured"}
 
 @app.get("/identity")
 def identity():

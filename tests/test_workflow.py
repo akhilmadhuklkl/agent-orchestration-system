@@ -19,6 +19,7 @@ from app.main import (
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
 from app.observability import metrics
+from app.main import model_status
 from app.security import require_api_key, require_workspace
 from app.tools import execute_tool
 
@@ -143,6 +144,11 @@ def test_observability_records_task_and_tool_metrics():
     assert metrics["tasks_total"] >= 1
     assert metrics["tool_runs_status_completed"] >= 1
     assert task.status == "completed"
+
+def test_model_status_reports_local_fallback():
+    status = model_status()
+    assert status["mode"] == "deterministic"
+    assert status["available"] is True
 
 def test_scoped_memory_is_persisted():
     request = type("Request", (), {"scope": "demo", "key": "preference", "value": {"style": "concise"}})()
