@@ -6,11 +6,13 @@ from app.main import (
     create_task,
     dashboard,
     get_task,
+    read_memory,
     retry_task,
     run_tool,
     task_events,
     tasks,
     tool_runs,
+    write_memory,
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
 from app.observability import metrics
@@ -103,3 +105,9 @@ def test_observability_records_task_and_tool_metrics():
     assert metrics["tasks_total"] >= 1
     assert metrics["tool_runs_status_completed"] >= 1
     assert task.status == "completed"
+
+def test_scoped_memory_is_persisted():
+    request = type("Request", (), {"scope": "demo", "key": "preference", "value": {"style": "concise"}})()
+    write_memory(request)
+    memories = read_memory("demo")
+    assert memories[0].value == {"style": "concise"}

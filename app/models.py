@@ -24,6 +24,17 @@ class ToolRun(BaseModel):
     error: str | None = None
     created_at: str
 
+class MemoryRequest(BaseModel):
+    scope: str
+    key: str
+    value: Any
+
+class MemoryItem(BaseModel):
+    scope: str
+    key: str
+    value: Any
+    created_at: str
+
 class TaskEvent(BaseModel):
     event_type: str
     message: str

@@ -43,6 +43,8 @@ LLM planning is configurable with `MODEL_MODE=deterministic` (default) or `MODEL
 
 Agents can select registered tools for supported task patterns. Tool calls pass through the same allow-list, risk, approval, and audit controls as direct API calls.
 
+Memory is scoped by a caller-provided namespace through `POST /memory` and `GET /memory/{scope}`. This prevents unrelated task or workspace context from being mixed accidentally.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples

@@ -18,8 +18,11 @@ from .database import (
 )
 from .database import get_task as load_task
 from .graph import build_graph
+from .memory import get_memories, init_memory, save_memory
 from .models import (
     ApprovalRequest,
+    MemoryItem,
+    MemoryRequest,
     TaskEvent,
     TaskRequest,
     TaskState,
@@ -46,6 +49,7 @@ app = FastAPI(title="Agent Orchestration System", version="0.1.0", lifespan=life
 app.add_middleware(RequestObservabilityMiddleware)
 graph = build_graph()
 init_db()
+init_memory()
 
 @app.get("/health")
 def health():
@@ -54,6 +58,14 @@ def health():
 @app.get("/metrics")
 def metrics_endpoint():
     return dict(metrics)
+
+@app.post("/memory", response_model=MemoryItem, dependencies=[Depends(require_api_key)])
+def write_memory(request: MemoryRequest):
+    return save_memory(request.scope, request.key, request.value)
+
+@app.get("/memory/{scope}", response_model=list[MemoryItem], dependencies=[Depends(require_api_key)])
+def read_memory(scope: str):
+    return get_memories(scope)
 
 @app.get("/")
 def dashboard():
