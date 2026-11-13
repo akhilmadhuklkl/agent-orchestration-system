@@ -172,7 +172,7 @@ def approve_task(task_id: str, request: ApprovalRequest):
     task.result = state.get("result")
     save_task(task)
     add_event(task_id, "worker.completed", "Assigned agent completed the task")
-    add_event(task_id, "task.completed", "Task completed successfully")
+    add_event(task_id, "task.completed" if task.status == "completed" else "task.failed", "Task completed successfully" if task.status == "completed" else "Review rejected the result")
     return task_state(task)
 
 @app.get("/tasks/{task_id}/events", response_model=list[TaskEvent], dependencies=[Depends(require_api_key)])

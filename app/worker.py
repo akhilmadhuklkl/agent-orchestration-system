@@ -17,7 +17,7 @@ def process_task(task_id: str) -> None:
     task.result = state.get("result")
     save_task(task)
     add_event(task_id, "worker.completed", "Background worker completed the task")
-    add_event(task_id, "task.completed", "Task completed successfully")
+    add_event(task_id, "task.completed" if task.status == "completed" else "task.failed", "Task completed successfully" if task.status == "completed" else "Review rejected the result")
 
 def run() -> None:
     print("Worker listening for tasks...")

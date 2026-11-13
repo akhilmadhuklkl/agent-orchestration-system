@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 from .agents import choose_agent
-from .llm import generate_plan
+from .llm import generate_plan, generate_result, review_result
 
 try:
     from langgraph.graph import END, START, StateGraph
@@ -32,6 +32,7 @@ except ImportError:  # pragma: no cover - used only on restricted Python hosts
                     state = {**state, **nodes["approval"](state)}
                     if state["status"] == "running":
                         state = {**state, **nodes["execute"](state)}
+                        state = {**state, **nodes["review"](state)}
                     return state
 
             return Compiled()
@@ -58,15 +59,21 @@ def approval_gate(state: GraphState) -> GraphState:
 
 def execute_task(state: GraphState) -> GraphState:
     agent = choose_agent(state["description"])
-    return {"status": "completed", "result": f"{state.get('agent_role', agent.role)} completed: {state['description']}"}
+    return {"status": "reviewing", "result": generate_result(state["description"], state.get("agent_role", agent.role))}
+
+def review_task(state: GraphState) -> GraphState:
+    passed, reason = review_result(state["description"], state["result"])
+    return {"status": "completed" if passed else "failed", "error": None if passed else reason}
 
 def build_graph():
     graph = StateGraph(GraphState)
     graph.add_node("plan", plan_task)
     graph.add_node("approval", approval_gate)
     graph.add_node("execute", execute_task)
+    graph.add_node("review", review_task)
     graph.add_edge(START, "plan")
     graph.add_edge("plan", "approval")
     graph.add_conditional_edges("approval", lambda s: "execute" if s["status"] == "running" else END)
-    graph.add_edge("execute", END)
+    graph.add_edge("execute", "review")
+    graph.add_edge("review", END)
     return graph.compile()

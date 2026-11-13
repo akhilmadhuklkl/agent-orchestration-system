@@ -9,9 +9,30 @@ def generate_plan(description: str) -> list[str]:
         return fallback
     try:
         from openai import OpenAI
-        client = OpenAI(api_key=settings.openai_api_key)
-        response = client.responses.create(model=settings.model_name, input=f"Create exactly three concise execution steps for this task. Return one step per line, with no numbering. Task: {description}")
+        response = OpenAI(api_key=settings.openai_api_key).responses.create(model=settings.model_name, input=f"Create exactly three concise execution steps for this task. Return one step per line, with no numbering. Task: {description}")
         steps = [line.strip(" -") for line in response.output_text.splitlines() if line.strip()]
         return steps[:3] if steps else fallback
     except Exception:  # noqa: BLE001 - model failures fall back to deterministic planning
         return fallback
+
+def generate_result(description: str, agent_role: str) -> str:
+    fallback = f"{agent_role} completed: {description}"
+    if settings.model_mode != "openai" or not settings.openai_api_key:
+        return fallback
+    try:
+        from openai import OpenAI
+        response = OpenAI(api_key=settings.openai_api_key).responses.create(model=settings.model_name, input=f"Act as a {agent_role}. Complete this task and provide a concise result: {description}")
+        return response.output_text.strip() or fallback
+    except Exception:  # noqa: BLE001 - model failures fall back to deterministic execution
+        return fallback
+
+def review_result(description: str, result: str) -> tuple[bool, str]:
+    if settings.model_mode != "openai" or not settings.openai_api_key:
+        return True, "Deterministic review passed"
+    try:
+        from openai import OpenAI
+        response = OpenAI(api_key=settings.openai_api_key).responses.create(model=settings.model_name, input=f"Review whether this result satisfies the task. Reply PASS or FAIL followed by a short reason. Task: {description}\nResult: {result}")
+        text = response.output_text.strip()
+        return not text.upper().startswith("FAIL"), text
+    except Exception:  # noqa: BLE001 - model failures do not block local execution
+        return True, "Review fallback passed"
