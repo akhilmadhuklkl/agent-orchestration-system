@@ -26,6 +26,12 @@ from .models import (
     ToolExecutionRequest,
     ToolRun,
 )
+from .observability import (
+    RequestObservabilityMiddleware,
+    metrics,
+    record_task,
+    record_tool,
+)
 from .queue import enqueue
 from .security import require_api_key
 from .tools import execute_tool, list_tools
@@ -37,12 +43,17 @@ async def lifespan(_app: FastAPI):
     yield
 
 app = FastAPI(title="Agent Orchestration System", version="0.1.0", lifespan=lifespan)
+app.add_middleware(RequestObservabilityMiddleware)
 graph = build_graph()
 init_db()
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/metrics")
+def metrics_endpoint():
+    return dict(metrics)
 
 @app.get("/")
 def dashboard():
@@ -62,18 +73,23 @@ def run_tool(tool_name: str, request: ToolExecutionRequest):
         tool = next((item for item in list_tools() if item.name == tool_name), None)
         if tool and tool.risk == "high" and not request.approved:
             add_tool_run(tool_name, request.agent, "approval_required", request.arguments, error="High-risk tool requires human approval")
+            record_tool("approval_required")
             raise HTTPException(409, "Human approval is required for this high-risk tool")
         result = execute_tool(tool_name, request.agent, request.arguments)
         add_tool_run(tool_name, request.agent, "completed", request.arguments, result=result)
+        record_tool("completed")
         return {"tool": tool_name, "agent": request.agent, "result": result}
     except KeyError as error:
         add_tool_run(tool_name, request.agent, "failed", request.arguments, error=str(error))
+        record_tool("failed")
         raise HTTPException(404, str(error)) from error
     except PermissionError as error:
         add_tool_run(tool_name, request.agent, "denied", request.arguments, error=str(error))
+        record_tool("denied")
         raise HTTPException(403, str(error)) from error
     except ValueError as error:
         add_tool_run(tool_name, request.agent, "failed", request.arguments, error=str(error))
+        record_tool("failed")
         raise HTTPException(422, str(error)) from error
 
 @app.get("/tool-runs", response_model=list[ToolRun], dependencies=[Depends(require_api_key)])
@@ -92,6 +108,7 @@ def create_task(request: TaskRequest):
     add_event(task_id, "approval.requested" if request.require_approval else "task.queued", "Waiting for human approval" if request.require_approval else "Ready for execution")
     if task.status == "completed":
         add_event(task_id, "task.completed", "Task completed successfully")
+    record_task(task.status)
     return task_state(task)
 
 @app.get("/tasks", response_model=list[TaskState], dependencies=[Depends(require_api_key)])

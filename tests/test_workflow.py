@@ -13,6 +13,7 @@ from app.main import (
     tool_runs,
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
+from app.observability import metrics
 from app.security import require_api_key
 from app.tools import execute_tool
 
@@ -95,3 +96,10 @@ def test_task_can_be_cancelled_and_retried():
 def test_sqlite_repository_is_default():
     from app.config import settings
     assert settings.database_url.startswith("sqlite:///")
+
+def test_observability_records_task_and_tool_metrics():
+    task = create_task(TaskRequest(description="Measure this task", require_approval=False))
+    run_tool("word_count", ToolExecutionRequest(agent="writer", arguments={"text": "one two"}))
+    assert metrics["tasks_total"] >= 1
+    assert metrics["tool_runs_status_completed"] >= 1
+    assert task.status == "completed"

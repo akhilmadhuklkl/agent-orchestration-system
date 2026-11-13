@@ -35,6 +35,8 @@ Set `DATABASE_URL=postgresql://orchestration:orchestration@localhost:5432/orches
 
 For the full local stack, run `docker compose up --build`. The API is then available at `http://localhost:8002`, with PostgreSQL, Redis, and a background worker running as separate services.
 
+Observability endpoints include `/health` and `/metrics`. API responses also include an `X-Request-ID` header, and structured request logs contain method, path, status, request ID, and duration.
+
 Tools also declare risk levels. High-risk tools require `approved: true` in the execution request; the notification tool is simulated and never sends an external message.
 
 ## API examples
