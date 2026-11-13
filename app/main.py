@@ -5,7 +5,15 @@ from fastapi import FastAPI, HTTPException
 
 from .agents import list_agents
 from .config import settings
-from .database import TaskRecord, add_event, get_events, init_db, save_task
+from .database import (
+    TaskRecord,
+    add_event,
+    add_tool_run,
+    get_events,
+    get_tool_runs,
+    init_db,
+    save_task,
+)
 from .database import get_task as load_task
 from .graph import build_graph
 from .models import (
@@ -14,6 +22,7 @@ from .models import (
     TaskRequest,
     TaskState,
     ToolExecutionRequest,
+    ToolRun,
 )
 from .queue import enqueue
 from .tools import execute_tool, list_tools
@@ -43,13 +52,22 @@ def tools():
 @app.post("/tools/{tool_name}/execute")
 def run_tool(tool_name: str, request: ToolExecutionRequest):
     try:
-        return {"tool": tool_name, "agent": request.agent, "result": execute_tool(tool_name, request.agent, request.arguments)}
+        result = execute_tool(tool_name, request.agent, request.arguments)
+        add_tool_run(tool_name, request.agent, "completed", request.arguments, result=result)
+        return {"tool": tool_name, "agent": request.agent, "result": result}
     except KeyError as error:
+        add_tool_run(tool_name, request.agent, "failed", request.arguments, error=str(error))
         raise HTTPException(404, str(error)) from error
     except PermissionError as error:
+        add_tool_run(tool_name, request.agent, "denied", request.arguments, error=str(error))
         raise HTTPException(403, str(error)) from error
     except ValueError as error:
+        add_tool_run(tool_name, request.agent, "failed", request.arguments, error=str(error))
         raise HTTPException(422, str(error)) from error
+
+@app.get("/tool-runs", response_model=list[ToolRun])
+def tool_runs():
+    return [ToolRun(**run.__dict__) for run in get_tool_runs()]
 
 @app.post("/tasks", response_model=TaskState, status_code=201)
 def create_task(request: TaskRequest):

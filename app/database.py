@@ -24,6 +24,16 @@ class EventRecord:
     message: str
     created_at: str
 
+@dataclass
+class ToolRunRecord:
+    tool: str
+    agent: str
+    status: str
+    arguments: dict
+    result: object | None
+    error: str | None
+    created_at: str
+
 def _path() -> str:
     return settings.database_url.removeprefix("sqlite:///") if settings.database_url.startswith("sqlite:///") else "orchestrator.db"
 
@@ -34,6 +44,7 @@ def init_db() -> None:
     with connect() as db:
         db.execute("CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, description TEXT NOT NULL, require_approval INTEGER NOT NULL, status TEXT NOT NULL, plan TEXT NOT NULL, result TEXT, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS task_events (task_id TEXT NOT NULL, event_type TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL)")
+        db.execute("CREATE TABLE IF NOT EXISTS tool_runs (tool TEXT NOT NULL, agent TEXT NOT NULL, status TEXT NOT NULL, arguments TEXT NOT NULL, result TEXT, error TEXT, created_at TEXT NOT NULL)")
 
 def save_task(task: TaskRecord) -> None:
     now = datetime.now(UTC).isoformat()
@@ -53,3 +64,12 @@ def get_events(task_id: str) -> list[EventRecord]:
     with connect() as db:
         rows = db.execute("SELECT task_id, event_type, message, created_at FROM task_events WHERE task_id = ? ORDER BY rowid", (task_id,)).fetchall()
     return [EventRecord(*row) for row in rows]
+
+def add_tool_run(tool: str, agent: str, status: str, arguments: dict, result: object | None = None, error: str | None = None) -> None:
+    with connect() as db:
+        db.execute("INSERT INTO tool_runs VALUES (?, ?, ?, ?, ?, ?, ?)", (tool, agent, status, json.dumps(arguments), json.dumps(result), error, datetime.now(UTC).isoformat()))
+
+def get_tool_runs() -> list[ToolRunRecord]:
+    with connect() as db:
+        rows = db.execute("SELECT tool, agent, status, arguments, result, error, created_at FROM tool_runs ORDER BY rowid DESC").fetchall()
+    return [ToolRunRecord(row[0], row[1], row[2], json.loads(row[3]), json.loads(row[4]) if row[4] else None, row[5], row[6]) for row in rows]

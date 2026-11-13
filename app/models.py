@@ -14,6 +14,15 @@ class ToolExecutionRequest(BaseModel):
     agent: str
     arguments: dict[str, Any] = {}
 
+class ToolRun(BaseModel):
+    tool: str
+    agent: str
+    status: str
+    arguments: dict[str, Any]
+    result: Any | None = None
+    error: str | None = None
+    created_at: str
+
 class TaskEvent(BaseModel):
     event_type: str
     message: str

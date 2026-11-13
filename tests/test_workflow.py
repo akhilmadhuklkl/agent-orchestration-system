@@ -1,4 +1,11 @@
-from app.main import approve_task, create_task, get_task, task_events
+from app.main import (
+    approve_task,
+    create_task,
+    get_task,
+    run_tool,
+    task_events,
+    tool_runs,
+)
 from app.models import ApprovalRequest, TaskRequest
 from app.tools import execute_tool
 
@@ -38,3 +45,9 @@ def test_tool_permissions_are_enforced():
         pass
     else:
         raise AssertionError("unauthorized tool call was accepted")
+
+def test_tool_run_history_records_success():
+    request = type("Request", (), {"agent": "writer", "arguments": {"text": "one two"}})()
+    response = run_tool("word_count", request)
+    assert response["result"] == {"words": 2}
+    assert tool_runs()[0].status == "completed"
