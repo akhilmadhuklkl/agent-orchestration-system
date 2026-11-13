@@ -47,7 +47,7 @@ def test_task_actions_emit_retry_event():
     cancelled = cancel_task(task.task_id)
     assert cancelled.status == "cancelled"
     retried = retry_task(task.task_id)
-    assert retried.status == "running"
+    assert retried.status == "awaiting_approval"
     assert any(event.event_type == "task.retried" for event in task_events(task.task_id))
 
 def test_task_actions_reject_invalid_states():
