@@ -8,6 +8,7 @@ from app.main import (
     create_task,
     dashboard,
     get_task,
+    model_status,
     read_memory,
     retry_task,
     run_tool,
@@ -19,7 +20,6 @@ from app.main import (
 )
 from app.models import ApprovalRequest, TaskRequest, ToolExecutionRequest
 from app.observability import metrics
-from app.main import model_status
 from app.security import require_api_key, require_workspace
 from app.tools import execute_tool
 
