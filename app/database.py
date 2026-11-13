@@ -152,7 +152,8 @@ def get_users() -> list[UserRecord]:
 def save_api_key(raw_key: str, user_id: str) -> None:
     digest = hashlib.sha256(raw_key.encode()).hexdigest()
     with connect() as db:
-        db.execute("INSERT INTO api_keys VALUES (?, ?, 0, ?)", (digest, user_id, datetime.now(UTC).isoformat()))
+        query = "INSERT INTO api_keys VALUES (?, ?, 0, ?) ON CONFLICT (key_hash) DO UPDATE SET user_id=EXCLUDED.user_id, revoked=0" if settings.database_url.startswith(("postgresql://", "postgres://")) else "INSERT OR REPLACE INTO api_keys VALUES (?, ?, 0, ?)"
+        db.execute(query, (digest, user_id, datetime.now(UTC).isoformat()))
 
 def api_key_user(raw_key: str) -> str | None:
     digest = hashlib.sha256(raw_key.encode()).hexdigest()
